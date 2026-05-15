@@ -55,3 +55,10 @@ Adds a line to item and world-object tooltips showing the required Lockpicking s
 ## Version History
 
 **1.0.0** — Stable release. Full coverage of vanilla lockboxes, junkboxes, and dungeon/outdoor chests. All item IDs verified against wowhead.com/classic.
+
+---
+
+## Known Limitations
+
+- Item and world object coverage is still being tested — some entries may have incorrect skill requirements or missing entries.
+- OctoWoW-specific lockable items and objects have not yet been added and will be included in a future update.
