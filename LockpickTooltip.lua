@@ -71,8 +71,9 @@ local LOCKABLE_OBJECTS = {
     ["Battered Chest"]              = 1,
     ["Waterlogged Footlocker"]      = 70,   -- Zoram Strand (Ashenvale), Lake Everstill (Redridge)
 
-    -- ===== Stonetalon / Hillsbrad / Wetlands =====
-    ["Battered Footlocker"]         = 70,   -- Found in multiple zones (Hillsbrad, Wetlands, Stonetalon)
+    -- ===== Stonetalon / Hillsbrad / Wetlands / Badlands =====
+    -- Requirement is zone-dependent; handled in AppendObjectLockLine
+    ["Battered Footlocker"]         = 70,
 
     -- ===== Shadowfang Keep =====
     ["Arugal's Footlocker"]         = 175,
@@ -108,8 +109,7 @@ local LOCKABLE_OBJECTS = {
     ["Mossy Footlocker"]            = 175,  -- Pool of Tears, Swamp of Sorrows (outside)
 
     -- ===== Badlands =====
-    ["Dented Footlocker"]           = 175,  -- Angor Fortress, lower level
-    -- Note: Battered Footlocker (upper Angor) = 150, covered above
+    ["Dented Footlocker"]           = 175,  -- Angor Fortress
 
     -- ===== Searing Gorge =====
     ["Slag Pit Footlocker"]         = 200,  -- Lower Slag Pit
@@ -124,6 +124,7 @@ local LOCKABLE_OBJECTS = {
 
     -- ===== Blackrock Spire =====
     ["Smoldering Chest"]            = 275,  -- LBRS/UBRS
+    ["Large Iron Bound Chest"]      = 25,   -- Low level zones
     ["Large Mithril Bound Chest"]   = 275,  -- LBRS
 
     -- ===== Dire Maul =====
@@ -204,7 +205,28 @@ end
 -- Append lockpick line for a known object name
 local function AppendObjectLockLine(name)
     if not name then return end
+
     local req = LOCKABLE_OBJECTS[name]
+
+    -- Battered Footlocker has different requirements depending on zone
+    if name == "Battered Footlocker" then
+        local zone = GetRealZoneText()
+        if zone == "Badlands" then
+            req = 165
+        else
+            -- Two variants exist outside Badlands, can't distinguish by name alone
+            if CanPickLock(110) then
+                GameTooltip:AddLine("|cff00ff00Pickable (70) or (110)|r")
+            elseif CanPickLock(70) then
+                GameTooltip:AddLine("|cff00ff00Pickable (70) |r|cffff2020or (110)|r")
+            else
+                GameTooltip:AddLine("|cffff2020Skill Level Too Low (70) or (110)|r")
+            end
+            GameTooltip:Show()
+            return
+        end
+    end
+
     if req then
         if CanPickLock(req) then
             GameTooltip:AddLine("|cff00ff00Pickable (" .. req .. ")|r")
