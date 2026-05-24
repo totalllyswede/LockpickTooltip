@@ -1,5 +1,5 @@
 # LockpickTooltip
-### World of Warcraft 1.12.1 (Vanilla) Addon — v1.0.0 Stable
+### World of Warcraft 1.12.1 (Vanilla) Addon — v1.1.0 Stable
 
 Adds a line to item and world-object tooltips showing the required Lockpicking skill, colour-coded green if you can pick it or red if your skill is too low.
 
@@ -54,7 +54,9 @@ Adds a line to item and world-object tooltips showing the required Lockpicking s
 
 ## Version History
 
-**1.0.0** — Stable release. Full coverage of vanilla lockboxes, junkboxes, and dungeon/outdoor chests. All item IDs verified against wowhead.com/classic.
+**1.1.0** — Stable. Zone-aware skill requirements for Battered Footlocker (Badlands vs elsewhere). Corrected all item IDs against wowhead.com/classic. Tooltip now shows Pickable/Skill Level Too Low in green/red.
+
+**1.0.0** — Initial stable release. Full coverage of vanilla lockboxes, junkboxes, and dungeon/outdoor chests.
 
 ---
 

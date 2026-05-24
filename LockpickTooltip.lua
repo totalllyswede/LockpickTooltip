@@ -384,4 +384,4 @@ SlashCmdList["LOCKPICKTIP"] = function(msg)
     end
 end
 
-DEFAULT_CHAT_FRAME:AddMessage("|cffffff00LockpickTooltip v1.0.0|r loaded. Type |cffaaddff/lpt|r for help.")
+DEFAULT_CHAT_FRAME:AddMessage("|cffffff00LockpickTooltip v1.1.0|r loaded. Type |cffaaddff/lpt|r for help.")
