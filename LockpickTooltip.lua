@@ -10,6 +10,14 @@ local function GetItemIDFromLink(link)
 end
 
 -------------------------------------------------------------------------------
+-- SETTINGS
+-- LockpickTooltipDB is a SavedVariable persisted across sessions.
+-- colorMode: "simple"  = green (pickable) / red (too low)
+--            "match"   = copy the colour of the game's own "Locked" text
+-------------------------------------------------------------------------------
+LockpickTooltipDB = LockpickTooltipDB or { colorMode = "simple" }
+
+-------------------------------------------------------------------------------
 -- LOCKPICKING SKILL REQUIREMENTS
 --
 -- Formula for chests/lockboxes in vanilla:
@@ -198,15 +206,43 @@ local orig_SetQuestItem = GameTooltip.SetQuestItem
 local orig_SetQuestLogItem = GameTooltip.SetQuestLogItem
 local orig_SetHyperlink = GameTooltip.SetHyperlink
 
+-- Returns the colour code to use for a tooltip line.
+-- "simple" mode: green if pickable, red if not.
+-- "match"  mode: copy the r,g,b from the game's own "Locked" text line.
+local function GetLineColor(pickable)
+    if LockpickTooltipDB.colorMode == "match" then
+        for i = 1, 30 do
+            local left = getglobal("GameTooltipTextLeft" .. i)
+            if not left then break end
+            local t = left:GetText()
+            if t and string.find(t, "Locked") then
+                local r, g, b = left:GetTextColor()
+                r = math.floor((r or 0) * 255)
+                g = math.floor((g or 0) * 255)
+                b = math.floor((b or 0) * 255)
+                return string.format("|cff%02x%02x%02x", r, g, b)
+            end
+        end
+    end
+    -- simple mode fallback
+    if pickable then
+        return "|cff00ff00"
+    else
+        return "|cffff2020"
+    end
+end
+
 -- Append lockpick line for a known item ID
 local function AppendItemLockLine(itemID)
     if not itemID then return end
     local req = LOCKBOX_ITEMS[itemID]
     if req then
-        if CanPickLock(req) then
-            GameTooltip:AddLine("|cff00ff00Pickable (" .. req .. ")|r")
+        local pickable = CanPickLock(req)
+        local color = GetLineColor(pickable)
+        if pickable then
+            GameTooltip:AddLine(color .. "Pickable (" .. req .. ")|r")
         else
-            GameTooltip:AddLine("|cffff2020Skill Level Too Low (" .. req .. ")|r")
+            GameTooltip:AddLine(color .. "Skill Level Too Low (" .. req .. ")|r")
         end
         GameTooltip:Show()
     end
@@ -248,10 +284,12 @@ local function AddMultiLevelLine(levels)
     -- Single level: straightforward
     if table.getn(levels) == 1 then
         local req = levels[1]
-        if CanPickLock(req) then
-            GameTooltip:AddLine("|cff00ff00Pickable (" .. req .. ")|r")
+        local pickable = CanPickLock(req)
+        local color = GetLineColor(pickable)
+        if pickable then
+            GameTooltip:AddLine(color .. "Pickable (" .. req .. ")|r")
         else
-            GameTooltip:AddLine("|cffff2020Skill Level Too Low (" .. req .. ")|r")
+            GameTooltip:AddLine(color .. "Skill Level Too Low (" .. req .. ")|r")
         end
         GameTooltip:Show()
         return
@@ -264,13 +302,16 @@ local function AddMultiLevelLine(levels)
 
     if lockedColor == "red" and CanPickLock(low) then
         -- Locked is red but player can pick the low variant - must be the higher one
-        GameTooltip:AddLine("|cffff2020Skill Level Too Low (" .. high .. ")|r")
+        local color = GetLineColor(false)
+        GameTooltip:AddLine(color .. "Skill Level Too Low (" .. high .. ")|r")
     elseif lockedColor == "red" then
         -- Locked is red and player can't pick either - too low for even the lowest
-        GameTooltip:AddLine("|cffff2020Skill Level Too Low (" .. low .. ")|r")
+        local color = GetLineColor(false)
+        GameTooltip:AddLine(color .. "Skill Level Too Low (" .. low .. ")|r")
     else
         -- Locked is not red (orange/yellow/green/grey) - player can pick it
-        GameTooltip:AddLine("|cff00ff00Pickable (" .. low .. ")|r")
+        local color = GetLineColor(true)
+        GameTooltip:AddLine(color .. "Pickable (" .. low .. ")|r")
     end
     GameTooltip:Show()
 end
@@ -349,10 +390,12 @@ local function AppendObjectLockLine(name)
     -- -----------------------------------------------------------------------
     local req = LOCKABLE_OBJECTS[name]
     if req then
-        if CanPickLock(req) then
-            GameTooltip:AddLine("|cff00ff00Pickable (" .. req .. ")|r")
+        local pickable = CanPickLock(req)
+        local color = GetLineColor(pickable)
+        if pickable then
+            GameTooltip:AddLine(color .. "Pickable (" .. req .. ")|r")
         else
-            GameTooltip:AddLine("|cffff2020Skill Level Too Low (" .. req .. ")|r")
+            GameTooltip:AddLine(color .. "Skill Level Too Low (" .. req .. ")|r")
         end
         GameTooltip:Show()
     end
@@ -496,13 +539,22 @@ SlashCmdList["LOCKPICKTIP"] = function(msg)
         for name, req in pairs(LOCKABLE_OBJECTS) do
             DEFAULT_CHAT_FRAME:AddMessage("  |cffaaddff" .. name .. "|r - Requires: " .. req)
         end
+    elseif arg == "color" or arg == "colour" then
+        if LockpickTooltipDB.colorMode == "simple" then
+            LockpickTooltipDB.colorMode = "match"
+            DEFAULT_CHAT_FRAME:AddMessage("|cffffff00LockpickTooltip|r: Color mode set to |cffaaddffMatch|r - tooltip text will match the game's Locked color.")
+        else
+            LockpickTooltipDB.colorMode = "simple"
+            DEFAULT_CHAT_FRAME:AddMessage("|cffffff00LockpickTooltip|r: Color mode set to |cffaaddffSimple|r - |cff00ff00green|r = pickable, |cffff2020red|r = too low.")
+        end
     else
-        DEFAULT_CHAT_FRAME:AddMessage("|cffffff00LockpickTooltip v1.0|r - Tooltip skill hints for rogues")
+        DEFAULT_CHAT_FRAME:AddMessage("|cffffff00LockpickTooltip|r (1.2.0) - Tooltip skill hints for rogues")
         DEFAULT_CHAT_FRAME:AddMessage("Commands:")
         DEFAULT_CHAT_FRAME:AddMessage("  |cffaaddff/lpt items|r   - list known lockboxes")
         DEFAULT_CHAT_FRAME:AddMessage("  |cffaaddff/lpt objects|r - list known lockable objects")
-        DEFAULT_CHAT_FRAME:AddMessage("Tooltip colors: |cff00ff00Green|r = can pick, |cffffff00Yellow|r = within 25 skill, |cffff4444Red|r = too low")
+        DEFAULT_CHAT_FRAME:AddMessage("  |cffaaddff/lpt color|r   - toggle color mode (currently: " .. LockpickTooltipDB.colorMode .. ")")
+        DEFAULT_CHAT_FRAME:AddMessage("Color modes: |cffaaddffSimple|r = green/red  |  |cffaaddffMatch|r = mirrors game Locked color")
     end
 end
 
-DEFAULT_CHAT_FRAME:AddMessage("|cffffff00LockpickTooltip v1.2.0|r loaded. Type |cffaaddff/lpt|r for help.")
+DEFAULT_CHAT_FRAME:AddMessage("|cffffff00LockpickTooltip|r (1.2.0) loaded. Type |cffaaddff/lpt|r for help.")

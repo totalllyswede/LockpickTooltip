@@ -1,7 +1,7 @@
 # LockpickTooltip
 ### World of Warcraft 1.12.1 (Vanilla) Addon — v1.2.0 Stable
 
-Adds a line to item and world-object tooltips showing the required Lockpicking skill, colour-coded green if you can pick it or red if your skill is too low.
+Adds a line to item and world-object tooltips showing the required Lockpicking skill, colour-coded based on whether you can pick it or not.
 
 ---
 
@@ -10,10 +10,13 @@ Adds a line to item and world-object tooltips showing the required Lockpicking s
 - Works on **bag items** (lockboxes, junkboxes)
 - Works on **world objects** (chests, doors, footlockers)
 - Works in **loot windows**, **merchant windows**, **chat item links**, and **quest windows**
-- Colour-coded tooltip line:
-  - Green **Pickable (175)** — your skill meets the requirement
-  - Red **Skill Level Too Low (225)** — your skill is too low
-- Slash command `/lpt` or `/lockpick` for help and item lists
+- Only shows on locked objects — unlocked chests are ignored
+- Zone-aware skill requirements for footlockers with multiple variants (Battered, Waterlogged, Mossy, Dented)
+- Uses the game's own "Locked" text colour to determine which variant a footlocker is when multiple exist in a zone
+- Two colour modes selectable via `/lpt color`:
+  - **Simple** (default): Green = Pickable, Red = Skill Level Too Low
+  - **Match**: mirrors the colour of the game's own "Locked" text (red, orange, yellow, green, or grey)
+- Setting is saved between sessions
 
 ---
 
@@ -34,6 +37,7 @@ Adds a line to item and world-object tooltips showing the required Lockpicking s
 | `/lpt` | Show help |
 | `/lpt items` | List all known lockbox items and their requirements |
 | `/lpt objects` | List all known lockable world objects and their requirements |
+| `/lpt color` | Toggle between Simple and Match colour modes |
 
 ---
 
@@ -46,15 +50,16 @@ Adds a line to item and world-object tooltips showing the required Lockpicking s
 
 **World Objects**
 - Rogue training boxes: Buccaneer's Strongbox, Practice Lockbox
+- Footlockers with zone-aware requirements: Battered, Waterlogged, Mossy, Dented, Scarlet
 - Outdoor chests across all Classic zones
 - Dungeon chests: Shadowfang Keep, Gnomeregan, Scarlet Monastery, Uldaman, Zul'Farrak, Maraudon, Sunken Temple, Blackrock Depths, Blackrock Spire, Dire Maul, Scholomance, Stratholme
-- Lockable doors: SM Cathedral, Gnomeregan, Scholomance, Stratholme Service Entrance
+- Lockable doors: Deadmines, Gnomeregan, SM Armory, SM Cathedral, Searing Gorge Gate, Blackrock Depths, Dire Maul (Crescent Door, Gordok Inner Door, Hidden Reach Door), Scholomance, Stratholme Service Entrance
 
 ---
 
 ## Version History
 
-**1.2.0** — Stable. Full zone-aware footlocker coverage from spreadsheet data (Battered, Waterlogged, Mossy, Dented). Multi-variant footlockers now use the game's own "Locked" text colour to determine which variant is present, showing a single accurate line instead of multiple. Added Scarlet Footlocker (Eastern Plaguelands, 250). All dungeon door skill requirements corrected. Added Deadmines and Dire Maul doors.
+**1.2.0** — Stable. Full zone-aware footlocker coverage (Battered, Waterlogged, Mossy, Dented, Scarlet). Multi-variant footlockers use the game's Locked text colour to identify which variant is present. Added colour mode toggle (/lpt color) saved between sessions. All dungeon door requirements corrected. Added Deadmines and Dire Maul doors.
 
 **1.1.0** — Zone-aware skill requirements for Battered Footlocker. Corrected all item IDs against wowhead.com/classic. Tooltip now shows Pickable/Skill Level Too Low in green/red.
 
