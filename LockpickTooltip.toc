@@ -2,7 +2,7 @@
 ## Title: LockpickTooltip
 ## Notes: Shows required lockpicking skill on item/object tooltips
 ## Author: Olzon
-## Version: 1.1.0
+## Version: 1.2.0
 ## SavedVariables:
 
 LockpickTooltip.lua

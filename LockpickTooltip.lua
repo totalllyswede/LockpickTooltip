@@ -54,25 +54,32 @@ local LOCKABLE_OBJECTS = {
     ["Practice Lockbox"]            = 0,    -- Alliance rogue quest, Alther's Mill in Redridge
 
     -- ===== Doors =====
-    ["Gnomeregan Door"]             = 150,  -- Gnomeregan entrance
-    ["Gnomeregan Entry Door"]       = 150,
+    ["Ironclad Cove Gate"]          = 150,  -- Deadmines
+    ["Water Gate"]                  = 150,  -- Deadmines
+    ["Gnomeregan Door"]             = 150,  -- Gnomeregan backdoor
+    ["Gnomeregan Entry Door"]       = 150,  -- Gnomeregan backdoor (alternate name)
+    ["Armory Door"]                 = 175,  -- Scarlet Monastery Armory
     ["Cathedral Door"]              = 175,  -- Scarlet Monastery Cathedral
-    ["Searing Gorge Gate"]          = 225,  -- Thorium Point gate
-    ["Prison Door"]                 = 280,  -- Blackrock Depths
-    ["Shadowforge Door"]            = 280,  -- Blackrock Depths
-    ["Scholomance Door"]            = 280,  -- Scholomance entrance
-    ["Service Entrance Door"]       = 300,  -- Stratholme service entrance
-    ["Stratholme Gate"]             = 300,
+    ["Searing Gorge Gate"]          = 225,  -- Loch Modan / Searing Gorge gate
+    ["Prison Door"]                 = 250,  -- Blackrock Depths prison cells
+    ["Shadowforge Door"]            = 250,  -- Blackrock Depths Shadowforge gates
+    ["Shadowforge Lock"]            = 250,  -- Blackrock Depths Shadowforge mechanism (alternate name)
+    ["Crescent Door"]               = 300,  -- Dire Maul
+    ["Gordok Inner Door"]           = 300,  -- Dire Maul North
+    ["Hidden Reach Door"]           = 300,  -- Dire Maul
+    ["Scholomance Door"]            = 280,  -- Scholomance main entrance
+    ["Service Entrance Door"]       = 300,  -- Stratholme servant's entrance
+    ["Stratholme Gate"]             = 300,  -- Stratholme (alternate name)
 
     -- ===== Silverpine Forest =====
     ["Decrepit Chest"]              = 1,
 
     -- ===== The Barrens / Ashenvale =====
     ["Battered Chest"]              = 1,
-    ["Waterlogged Footlocker"]      = 70,   -- Zoram Strand (Ashenvale), Lake Everstill (Redridge)
+    ["Waterlogged Footlocker"]      = 70,   -- Ashenvale, Redridge (150 in Desolace; handled in AppendObjectLockLine)
 
     -- ===== Stonetalon / Hillsbrad / Wetlands / Badlands =====
-    -- Requirement is zone-dependent; handled in AppendObjectLockLine
+    -- Multiple variants with different requirements; handled in AppendObjectLockLine
     ["Battered Footlocker"]         = 70,
 
     -- ===== Shadowfang Keep =====
@@ -106,10 +113,12 @@ local LOCKABLE_OBJECTS = {
     -- ===== Sunken Temple =====
     ["Sunken Temple Chest"]         = 200,
     ["Troll Chest"]                 = 175,
-    ["Mossy Footlocker"]            = 175,  -- Pool of Tears, Swamp of Sorrows (outside)
+    -- Mossy Footlocker: 175 in Desolace/Swamp of Sorrows, 225 in Azshara; handled in AppendObjectLockLine
+    ["Mossy Footlocker"]            = 175,
 
-    -- ===== Badlands =====
-    ["Dented Footlocker"]           = 175,  -- Angor Fortress
+    -- ===== Badlands / Searing Gorge / Tanaris =====
+    -- Dented Footlocker: 175 in Badlands, 200/225 in Searing Gorge, 225 in Tanaris; handled in AppendObjectLockLine
+    ["Dented Footlocker"]           = 175,
 
     -- ===== Searing Gorge =====
     ["Slag Pit Footlocker"]         = 200,  -- Lower Slag Pit
@@ -144,6 +153,7 @@ local LOCKABLE_OBJECTS = {
     -- ===== Eastern Plaguelands =====
     ["Mossflayer Chest"]            = 225,
     ["Lich's Box"]                  = 275,
+    ["Scarlet Footlocker"]          = 250,  -- Eastern Plaguelands
 
     -- ===== Silithus =====
     ["Silithid Cache"]              = 250,
@@ -202,31 +212,142 @@ local function AppendItemLockLine(itemID)
     end
 end
 
+-- Returns "red" if the "Locked" line is red (skill too low),
+-- "other" if Locked is present but any other colour (orange/yellow/green/grey = pickable),
+-- nil if no Locked line found.
+local function GetLockedLineColor()
+    for i = 1, 30 do
+        local left = getglobal("GameTooltipTextLeft" .. i)
+        if not left then break end
+        local t = left:GetText()
+        if t and string.find(t, "Locked") then
+            local r, g, b = left:GetTextColor()
+            r = r or 0
+            g = g or 0
+            b = b or 0
+            -- Red: high red channel, low green and blue
+            if r > 0.8 and g < 0.3 and b < 0.3 then
+                return "red"
+            else
+                return "other"
+            end
+        end
+    end
+    return nil
+end
+
+-- Returns true if the tooltip contains a "Locked" line (any colour)
+local function IsTooltipLocked()
+    return GetLockedLineColor() ~= nil
+end
+
+-- Helper to display a line for objects with multiple possible skill requirements.
+-- Uses the colour of the game's own "Locked" text to determine which variant it is:
+-- If "Locked" is red and playerSkill is between low and high, it must be the higher variant.
+local function AddMultiLevelLine(levels)
+    -- Single level: straightforward
+    if table.getn(levels) == 1 then
+        local req = levels[1]
+        if CanPickLock(req) then
+            GameTooltip:AddLine("|cff00ff00Pickable (" .. req .. ")|r")
+        else
+            GameTooltip:AddLine("|cffff2020Skill Level Too Low (" .. req .. ")|r")
+        end
+        GameTooltip:Show()
+        return
+    end
+
+    -- Multiple levels: use the Locked line colour to disambiguate
+    local lockedColor = GetLockedLineColor()
+    local low  = levels[1]
+    local high = levels[table.getn(levels)]
+
+    if lockedColor == "red" and CanPickLock(low) then
+        -- Locked is red but player can pick the low variant - must be the higher one
+        GameTooltip:AddLine("|cffff2020Skill Level Too Low (" .. high .. ")|r")
+    elseif lockedColor == "red" then
+        -- Locked is red and player can't pick either - too low for even the lowest
+        GameTooltip:AddLine("|cffff2020Skill Level Too Low (" .. low .. ")|r")
+    else
+        -- Locked is not red (orange/yellow/green/grey) - player can pick it
+        GameTooltip:AddLine("|cff00ff00Pickable (" .. low .. ")|r")
+    end
+    GameTooltip:Show()
+end
+
 -- Append lockpick line for a known object name
 local function AppendObjectLockLine(name)
     if not name then return end
+    if not IsTooltipLocked() then return end
 
-    local req = LOCKABLE_OBJECTS[name]
+    local zone = GetRealZoneText()
 
-    -- Battered Footlocker has different requirements depending on zone
+    -- -----------------------------------------------------------------------
+    -- Battered Footlocker: varies by zone
+    -- Stonetalon Mountains: 70 or 110
+    -- Wetlands:             70 or 115
+    -- Hillsbrad Foothills:  110
+    -- Badlands:             150
+    -- -----------------------------------------------------------------------
     if name == "Battered Footlocker" then
-        local zone = GetRealZoneText()
-        if zone == "Badlands" then
-            req = 165
+        if zone == "Stonetalon Mountains" then
+            AddMultiLevelLine({70, 110})
+        elseif zone == "Wetlands" then
+            AddMultiLevelLine({70, 115})
+        elseif zone == "Hillsbrad Foothills" then
+            AddMultiLevelLine({110})
+        elseif zone == "Badlands" then
+            AddMultiLevelLine({150})
         else
-            -- Two variants exist outside Badlands, can't distinguish by name alone
-            if CanPickLock(110) then
-                GameTooltip:AddLine("|cff00ff00Pickable (70) or (110)|r")
-            elseif CanPickLock(70) then
-                GameTooltip:AddLine("|cff00ff00Pickable (70) |r|cffff2020or (110)|r")
-            else
-                GameTooltip:AddLine("|cffff2020Skill Level Too Low (70) or (110)|r")
-            end
-            GameTooltip:Show()
-            return
+            AddMultiLevelLine({70, 110})  -- fallback: show both common levels
         end
+        return
     end
 
+    -- -----------------------------------------------------------------------
+    -- Waterlogged Footlocker: 70 in Ashenvale/Redridge, 150 in Desolace
+    -- -----------------------------------------------------------------------
+    if name == "Waterlogged Footlocker" then
+        if zone == "Desolace" then
+            AddMultiLevelLine({150})
+        else
+            AddMultiLevelLine({70, 115})
+        end
+        return
+    end
+
+    -- -----------------------------------------------------------------------
+    -- Mossy Footlocker: 175 in Desolace/Swamp of Sorrows, 225 in Azshara
+    -- -----------------------------------------------------------------------
+    if name == "Mossy Footlocker" then
+        if zone == "Azshara" then
+            AddMultiLevelLine({225})
+        else
+            AddMultiLevelLine({175})
+        end
+        return
+    end
+
+    -- -----------------------------------------------------------------------
+    -- Dented Footlocker: 175 in Badlands, 200 or 225 in Searing Gorge, 225 in Tanaris
+    -- -----------------------------------------------------------------------
+    if name == "Dented Footlocker" then
+        if zone == "Badlands" then
+            AddMultiLevelLine({175})
+        elseif zone == "Searing Gorge" then
+            AddMultiLevelLine({200, 225})
+        elseif zone == "Tanaris" then
+            AddMultiLevelLine({225})
+        else
+            AddMultiLevelLine({175, 225})  -- fallback
+        end
+        return
+    end
+
+    -- -----------------------------------------------------------------------
+    -- All other objects: single fixed requirement
+    -- -----------------------------------------------------------------------
+    local req = LOCKABLE_OBJECTS[name]
     if req then
         if CanPickLock(req) then
             GameTooltip:AddLine("|cff00ff00Pickable (" .. req .. ")|r")
@@ -384,4 +505,4 @@ SlashCmdList["LOCKPICKTIP"] = function(msg)
     end
 end
 
-DEFAULT_CHAT_FRAME:AddMessage("|cffffff00LockpickTooltip v1.1.0|r loaded. Type |cffaaddff/lpt|r for help.")
+DEFAULT_CHAT_FRAME:AddMessage("|cffffff00LockpickTooltip v1.2.0|r loaded. Type |cffaaddff/lpt|r for help.")
